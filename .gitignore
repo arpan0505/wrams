@@ -1,5 +1,6 @@
 # Python
 __pycache__/
+**/__pycache__/
 *.py[cod]
 *$py.class
 *.so
@@ -50,6 +51,15 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Project specific
+# Project specific - Large files & build artifacts
+*.jar
+*.zip
+*.war
+
+# Project specific - Data & storage directories
 test videos/
-main_service/backend/wrams.zip
+main_service/frames_storage/
+main_service/backend/frames_storage/
+
+# Brain / Gemini internal
+brain/
