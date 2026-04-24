@@ -71,6 +71,12 @@ def get_frames(db: Session = Depends(get_db)):
     return db.query(models.EmbkFrameInf).all()
 
 # --- MOVED TO BOTTOM ---
+from fastapi.responses import Response
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return Response(status_code=204)
+
 # Mount Frontend files to the root /
 # This must be at the end so it doesn't block /api routes
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../frontend"))

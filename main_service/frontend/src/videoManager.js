@@ -8,6 +8,20 @@ const urlParams = new URLSearchParams(window.location.search);
 const externalEId = urlParams.get('e_id');
 export let currentEId = externalEId ? parseInt(externalEId, 10) : 1; 
 
+const JAVA_API_BASE = "http://localhost:49001/lea/wrams";
+
+async function fetchAssetName(eid) {
+  try {
+    const response = await fetch(`${JAVA_API_BASE}/assets?e_id=${eid}`);
+    const data = await response.json();
+    const asset = Array.isArray(data) ? data[0] : (data.content ? data.content[0] : null);
+    return asset ? asset.assetName : null;
+  } catch (err) {
+    console.warn("Could not fetch asset name from Java service", err);
+    return null;
+  }
+}
+
 export async function initVideoPlayer(videoElement, sourceURL, filename) {
   // 1. Destructive action warning 
   if (hasUnsavedFrames()) {
@@ -20,10 +34,16 @@ export async function initVideoPlayer(videoElement, sourceURL, filename) {
     currentVideoFilename = filename;
   }
   
-  // Display the determined e_id above the video
+  // Display the determined e_id and try to get the name
   const eidDisplay = document.getElementById('eid-display');
   if (eidDisplay) {
-    eidDisplay.textContent = `E_ID: ${currentEId}`;
+    eidDisplay.textContent = `E_ID: ${currentEId} (Loading...)`;
+    const assetName = await fetchAssetName(currentEId);
+    if (assetName) {
+      eidDisplay.textContent = `Asset: ${assetName} (ID: ${currentEId})`;
+    } else {
+      eidDisplay.textContent = `E_ID: ${currentEId}`;
+    }
   }
   
   videoElement.src = sourceURL;

@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Data Filter | EIS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #34618a, #4a90e2);
+            --accent-teal: #26a69a;
+            --bg-dark: #1e1e2d;
+            --panel-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #e0e0e0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-dark);
+            font-family: 'Inter', sans-serif;
+            color: var(--text-main);
+        }
+
+        .filter-modal {
+            width: 850px;
+            background: var(--panel-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .filter-header {
+            background: var(--primary-gradient);
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: #fff;
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+        }
+
+        .header-title .icon-bg {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .close-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: #fff;
+            width: 34px;
+            height: 34px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 1.2rem;
+        }
+
+        .close-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: rotate(90deg);
+        }
+
+        .filter-body {
+            padding: 2.5rem;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 2rem;
+            background: #fdfdfd;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .filter-group label {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #444;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .filter-group label span.emoji {
+            font-size: 1.1rem;
+            filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+        }
+
+        .filter-group select {
+            padding: 0.9rem 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            background: #fff;
+            font-size: 1rem;
+            color: var(--text-main);
+            outline: none;
+            cursor: pointer;
+            transition: all 0.2s;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 18px;
+        }
+
+        .filter-group select:hover {
+            border-color: #4a90e2;
+        }
+
+        .filter-group select:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.1);
+        }
+
+        .span-2 {
+            grid-column: span 2;
+        }
+
+        .filter-footer {
+            padding: 2rem 2.5rem;
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            background: #fff;
+        }
+
+        .btn {
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: none;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-apply {
+            background: var(--accent-teal);
+            color: #fff;
+            box-shadow: 0 8px 20px rgba(38, 166, 154, 0.3);
+            min-width: 200px;
+        }
+
+        .btn-clear {
+            background: #fff;
+            color: #444;
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-apply:hover {
+            background: #23968a;
+            box-shadow: 0 12px 25px rgba(38, 166, 154, 0.4);
+        }
+
+        .btn-clear:hover {
+            background: #f8f9fa;
+            border-color: #ccc;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 900px) {
+            .filter-modal { width: 95%; }
+            .filter-body { grid-template-columns: 1fr 1fr; }
+            .span-2 { grid-column: span 2; }
+        }
+    </style>
+</head>
+<body>
+    <div class="filter-modal">
+        <div class="filter-header">
+            <div class="header-title">
+                <div class="icon-bg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
+                    </svg>
+                </div>
+                Asset Data Filter - EIS
+            </div>
+            <button class="close-btn" onclick="window.close()">✕</button>
+        </div>
+
+        <div class="filter-body">
+            <div class="filter-group">
+                <label><span class="emoji">💧</span> Sub Basin</label>
+                <select id="sub-basin">
+                    <option value="">Select Sub Basin</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><span class="emoji">📍</span> Division</label>
+                <select id="division">
+                    <option value="">Select Division</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><span class="emoji">📍</span> Sub-Division</label>
+                <select id="sub-division">
+                    <option value="">Select Sub-division</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label><span class="emoji">📦</span> Asset Type</label>
+                <select id="asset-type">
+                    <option value="embankment">Embankment</option>
+                </select>
+            </div>
+            <div class="filter-group span-2">
+                <label><span class="emoji">📝</span> Asset List</label>
+                <select id="asset-list">
+                    <option value="">Select Asset</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-footer">
+            <button id="apply-filters" class="btn btn-apply">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+                Apply Filters
+            </button>
+            <button id="clear-all" class="btn btn-clear">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+                Clear All
+            </button>
+        </div>
+    </div>
+
+    <script type="module">
+        const VISION_PLAYER_URL = "http://localhost:8000/"; 
+        const BASE_API = "http://localhost:49001/lea/wrams";
+
+        const subBasinSelect = document.getElementById('sub-basin');
+        const divisionSelect = document.getElementById('division');
+        const subDivisionSelect = document.getElementById('sub-division');
+        const assetTypeSelect = document.getElementById('asset-type');
+        const assetListSelect = document.getElementById('asset-list');
+        const applyBtn = document.getElementById('apply-filters');
+
+        // Configuration
+        const PROXY_API = '/api/java-proxy?path=';
+        const BASE_JAVA_PATH = '/lea/wrams';
+        
+
+        async function fetchAndPopulate(url, selectElement, placeholder, valueKey, textKey, isProxy = true) {
+            try {
+                // If it's a proxy request, we wrap the path
+                const finalUrl = isProxy ? `${PROXY_API}${encodeURIComponent(url)}` : url;
+                
+                const response = await fetch(finalUrl);
+                const data = await response.json();
+                
+                // Handle different JSON formats (Spring Boot often wraps in 'content' or returns an array)
+                let items = [];
+                if (Array.isArray(data)) {
+                    items = data;
+                } else if (data && data.data && Array.isArray(data.data)) {
+                    items = data.data;
+                } else if (data && data.content && Array.isArray(data.content)) {
+                    items = data.content;
+                }
+
+                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+                items.forEach(item => {
+                    const option = document.createElement('option');
+                    if (item !== null && typeof item === 'object') {
+                        let val = item[valueKey];
+                        if (val === undefined) val = item.id;
+                        if (val === undefined) val = item.e_id;
+                        
+                        let txt = item[textKey];
+                        if (txt === undefined) txt = item.jrdcn_NAME;
+                        if (txt === undefined) txt = item.assetName;
+                        if (txt === undefined) txt = item.assetTypeName;
+                        
+                        option.value = val !== undefined ? val : "";
+                        option.textContent = txt !== undefined ? txt : "Unknown";
+                    } else {
+                        option.value = item;
+                        option.textContent = item;
+                    }
+                    selectElement.appendChild(option);
+                });
+            } catch (error) {
+                console.error(`Error fetching data from ${url}:`, error);
+                selectElement.innerHTML = `<option value="">Error loading data</option>`;
+            }
+        }
+
+        // Initial fetch: Sub Basins
+        fetchAndPopulate(`${BASE_JAVA_PATH}/sub-basin?basinId=1`, subBasinSelect, 'Select Sub Basin', 'shortCode', 'subBasinName');
+
+        subBasinSelect.addEventListener('change', () => {
+            const subBasinCode = subBasinSelect.value;
+            if (!subBasinCode) return;
+
+            // Fetch Divisions
+            fetchAndPopulate(`${BASE_JAVA_PATH}/sub-basin/divisions?shortCode=${subBasinCode}`, divisionSelect, 'Select Division', 'divisionId', 'division');
+            
+            // Reset dependent dropdowns
+            subDivisionSelect.innerHTML = '<option value="">Select Sub-division</option>';
+            assetTypeSelect.innerHTML = '<option value="">Select Asset Type</option>';
+            assetListSelect.innerHTML = '<option value="">Select Asset</option>';
+        });
+
+        divisionSelect.addEventListener('change', () => {
+            const divisionId = divisionSelect.value;
+            const subBasinId = subBasinSelect.value;
+            if (!divisionId) return;
+
+            // 1. Fetch Sub-divisions from our LOCAL Python API (Port 8001) - NO PROXY NEEDED
+            fetchAndPopulate(`http://localhost:8001/api/filters/sub-divisions?division_id=${divisionId}`, subDivisionSelect, 'Select Sub-division', 'id', 'name', false);
+
+            // 2. Fetch Asset Types from the JAVA API (Port 49001) via PROXY
+            fetchAndPopulate(`${BASE_JAVA_PATH}/assets/distinct-asset-codes?shortCode=${subBasinId}&divisionId=${divisionId}`, assetTypeSelect, 'Select Asset Type', 'assetCode', 'assetTypeName');
+            
+            // Reset asset list
+            assetListSelect.innerHTML = '<option value="">Select Asset</option>';
+        });
+
+        assetTypeSelect.addEventListener('change', () => {
+            const assetCode = assetTypeSelect.value;
+            const subBasinId = subBasinSelect.value;
+            const divisionId = divisionSelect.value;
+            if (!assetCode) return;
+
+            // Fetch Assets via PROXY
+            fetchAndPopulate(`${BASE_JAVA_PATH}/assets?shortCode=${subBasinId}&divisionId=${divisionId}&assetCode=${assetCode}`, assetListSelect, 'Select Asset', 'e_id', 'assetName');
+        });
+
+        applyBtn.addEventListener('click', () => {
+            const e_id = assetListSelect.value;
+            if (e_id) {
+                window.location.href = `${VISION_PLAYER_URL}?e_id=${e_id}`;
+            } else {
+                alert('Please select an asset from the list');
+            }
+        });
+
+        document.getElementById('clear-all').addEventListener('click', () => {
+            location.reload(); // Simplest way to reset everything
+        });
+    </script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 // src/main.js
-import { initVideoPlayer } from './videoManager.js';
+import { initVideoPlayer, currentEId } from './videoManager.js';
 import { attachSubtitleEvents } from './subtitleHandler.js';
 import { setupFrameSnatcher } from './frameSnatcher.js';
 import { uploadSession, getSessionFrames, clearSession, hasUnsavedFrames } from './sessionManager.js';
@@ -12,6 +12,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const subtitleDisplay = document.getElementById('subtitle-display');
   const startBtn = document.getElementById('start-btn');
   const saveSessionBtn = document.getElementById('save-session-btn');
+  
+  // Enforce e_id check
+  const urlParams = new URLSearchParams(window.location.search);
+  if (!urlParams.get('e_id')) {
+    // If no e_id, we disable the inputs and show a message
+    videoInput.parentElement.style.opacity = '0.5';
+    videoInput.parentElement.style.pointerEvents = 'none';
+    alert("Please select an asset from the Filter Service before uploading a video.");
+    window.location.href = "filter_service/frontend/index.html";
+    return;
+  }
   
   // Modal Elements
   const modal = document.getElementById('review-modal');
