@@ -1,10 +1,25 @@
 // src/main.js
+import { loadConfig, getConfig } from './config.js';
 import { initVideoPlayer, currentEId } from './videoManager.js';
 import { attachSubtitleEvents } from './subtitleHandler.js';
 import { setupFrameSnatcher } from './frameSnatcher.js';
 import { uploadSession, getSessionFrames, clearSession, hasUnsavedFrames } from './sessionManager.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+  // Load runtime config from backend FIRST
+  const config = await loadConfig();
+
+  // Update page title and header from config
+  document.title = config.player_title || 'VisionPlayer';
+  const headerH1 = document.querySelector('.app-header h1');
+  if (headerH1) {
+    headerH1.innerHTML = `Vision<span>Player</span>`;
+  }
+  const headerP = document.querySelector('.app-header p');
+  if (headerP) {
+    headerP.textContent = config.player_subtitle || '';
+  }
+
   // Elements
   const videoInput = document.getElementById('video-input');
   const srtInput = document.getElementById('srt-input');
@@ -13,14 +28,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const startBtn = document.getElementById('start-btn');
   const saveSessionBtn = document.getElementById('save-session-btn');
   
-  // Enforce e_id check
+  // Enforce e_id check — redirect to filter service if missing
   const urlParams = new URLSearchParams(window.location.search);
   if (!urlParams.get('e_id')) {
-    // If no e_id, we disable the inputs and show a message
     videoInput.parentElement.style.opacity = '0.5';
     videoInput.parentElement.style.pointerEvents = 'none';
-    alert("Please select an asset from the Filter Service before uploading a video.");
-    window.location.href = "filter_service/frontend/index.html";
+    alert(`Please select an asset from the Filter Service before uploading a video.`);
+    window.location.href = config.filter_service_url;
     return;
   }
   
@@ -42,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startBtn.disabled = !(hasVideo && hasGPS);
     if (!startBtn.disabled) {
       startBtn.textContent = '▶ Start Playback (Ready)';
-      startBtn.style.background = '#00c853'; // Make it pop visually
+      startBtn.style.background = '#00c853';
     }
   }
 
@@ -84,7 +98,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // Prepare Modal
     modalFrameCount.textContent = frames.length;
     progressContainer.style.display = 'none';
     modalSaveBtn.style.display = 'inline-block';
@@ -108,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
         progressText.textContent = `Saving frames: ${processed} / ${total}`;
       });
 
-      // Cleanup on Success
       alert("Session saved successfully!");
       clearSession();
       modal.style.display = 'none';
@@ -124,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
   window.addEventListener('beforeunload', (e) => {
     if (hasUnsavedFrames()) {
       e.preventDefault();
-      e.returnValue = ''; // Required for Chrome
+      e.returnValue = '';
     }
   });
 

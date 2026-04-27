@@ -1,0 +1,88 @@
+{
+    "display_name": "WRAMS - Water Resources Asset Management",
+    "header_title": "Asset Data Filter - EIS",
+    "player_title": "VisionPlayer | WRAMS Service",
+    "player_subtitle": "Precision Frame Snatching & SRT Engine (WRAMS)",
+    "frame_table": "embk_frame_inf",
+    "java_api_base_path": "/lea/wrams",
+    "id_field": "e_id",
+    "id_label": "E_ID",
+
+    "filter_cascade": [
+        {
+            "id": "sub_basin",
+            "label": "Sub Basin",
+            "emoji": "💧",
+            "source": "java_proxy",
+            "endpoint_path": "/sub-basin?basinId=1",
+            "value_key": "shortCode",
+            "text_key": "subBasinName",
+            "depends_on": null,
+            "placeholder": "Select Sub Basin"
+        },
+        {
+            "id": "division",
+            "label": "Division",
+            "emoji": "📍",
+            "source": "java_proxy",
+            "endpoint_path": "/sub-basin/divisions?shortCode={sub_basin}",
+            "value_key": "divisionId",
+            "text_key": "division",
+            "depends_on": "sub_basin",
+            "placeholder": "Select Division"
+        },
+        {
+            "id": "sub_division",
+            "label": "Sub-Division",
+            "emoji": "📍",
+            "source": "local_query",
+            "query_key": "sub_divisions",
+            "value_key": "id",
+            "text_key": "name",
+            "depends_on": "division",
+            "placeholder": "Select Sub-division"
+        },
+        {
+            "id": "asset_type",
+            "label": "Asset Type",
+            "emoji": "📦",
+            "source": "java_proxy",
+            "endpoint_path": "/assets/distinct-asset-codes?shortCode={sub_basin}&divisionId={division}",
+            "value_key": "assetCode",
+            "text_key": "assetTypeName",
+            "depends_on": "division",
+            "placeholder": "Select Asset Type"
+        },
+        {
+            "id": "asset_list",
+            "label": "Asset List",
+            "emoji": "📝",
+            "source": "java_proxy",
+            "endpoint_path": "/assets?shortCode={sub_basin}&divisionId={division}&assetCode={asset_type}",
+            "value_key": "e_id",
+            "text_key": "assetName",
+            "depends_on": "asset_type",
+            "placeholder": "Select Asset",
+            "span": 2,
+            "is_final": true
+        }
+    ],
+
+    "local_queries": {
+        "sub_divisions": {
+            "sql": "SELECT a.* FROM (SELECT JRDCN_CODE, JRDCN_SHORT_CODE, JRDCN_NAME, PJM_ID, CASE WHEN JRDCN_NAME LIKE 'NONPW%%' THEN 'ZZZZZZ' ELSE JRDCN_NAME END AS ordercolumn FROM JRDCN_MST WHERE EXPIRED_DATE IS NULL) a WHERE PJM_ID = :division_id ORDER BY a.ordercolumn",
+            "params": ["division_id"],
+            "value_key": "jrdcn_code",
+            "text_key": "jrdcn_name"
+        }
+    },
+
+    "frame_columns": {
+        "id": {"type": "BigInteger", "primary_key": true},
+        "latitude": {"type": "Float"},
+        "longitude": {"type": "Float"},
+        "e_id": {"type": "BigInteger"},
+        "timestamp": {"type": "Float"},
+        "filename": {"type": "String"}
+    }
+}

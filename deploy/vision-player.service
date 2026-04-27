@@ -1,0 +1,35 @@
+# ============================================================
+# Systemd Service — Vision Player
+# ============================================================
+# Install:
+#   sudo cp deploy/vision-player.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable vision-player
+#   sudo systemctl start vision-player
+# ============================================================
+
+[Unit]
+Description=WRAMS Vision Player Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/services/wrams
+EnvironmentFile=/opt/services/wrams/.env
+ExecStart=/opt/services/wrams/venv/bin/python run.py --service vision
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/services/wrams/frames_storage
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

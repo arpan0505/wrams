@@ -1,0 +1,35 @@
+# ============================================================
+# Systemd Service — Asset Filter
+# ============================================================
+# Install:
+#   sudo cp deploy/asset-filter.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable asset-filter
+#   sudo systemctl start asset-filter
+# ============================================================
+
+[Unit]
+Description=WRAMS Asset Filter Service
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/services/wrams
+EnvironmentFile=/opt/services/wrams/.env
+ExecStart=/opt/services/wrams/venv/bin/python run.py --service filter
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+# Security hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/services/wrams
+ProtectHome=yes
+
+[Install]
+WantedBy=multi-user.target

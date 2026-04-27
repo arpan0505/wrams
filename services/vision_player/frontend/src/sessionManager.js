@@ -1,4 +1,5 @@
 // src/sessionManager.js
+import { getConfig } from './config.js';
 
 let sessionFrames = [];
 let isDirty = false;
@@ -31,22 +32,23 @@ function updateStatusDisplay() {
 }
 
 /**
- * Uploads frames in chunks of 'batchSize' to the FastAPI backend.
+ * Uploads frames in chunks to the FastAPI backend.
+ * Upload URL comes from config — works behind any reverse proxy.
  */
 export async function uploadSession(onProgress) {
+    const config = getConfig();
+    const uploadUrl = config.upload_url || '/api/frames/batch';
+
     const batchSize = 20;
     const total = sessionFrames.length;
     let processed = 0;
 
     for (let i = 0; i < total; i += batchSize) {
         const chunk = sessionFrames.slice(i, i + batchSize);
-        const payload = {
-            frames: chunk
-        };
+        const payload = { frames: chunk };
 
         try {
-            // Pointing to main_service backend (port 8001)
-            const response = await fetch("http://103.219.61.73/wrams_video/api/frames/batch", {
+            const response = await fetch(uploadUrl, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

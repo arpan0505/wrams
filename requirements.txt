@@ -1,0 +1,29 @@
+# ============================================================
+# WRAMS Modular Service — Python Dependencies
+# ============================================================
+# Install: pip install -r requirements.txt
+# ============================================================
+
+# Web framework
+fastapi>=0.100.0
+uvicorn[standard]>=0.23.0
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+
+# Configuration
+pydantic-settings>=2.0.0
+
+# HTTP client (for Java API proxy)
+httpx>=0.24.0
+
+# File handling
+python-multipart>=0.0.6
+
+# Spatial Processing
+geopandas>=0.14.0
+pandas>=2.0.0
+shapely>=2.0.0
+pyogrio>=0.7.0
+geoalchemy2>=0.14.0

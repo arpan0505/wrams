@@ -33,6 +33,7 @@ ENV/
 .env
 .env.local
 .env.*
+!.env.example
 
 # Node.js
 node_modules/
@@ -58,9 +59,12 @@ Thumbs.db
 
 # Project specific - Data & storage directories
 test videos/
+frames_storage/
 main_service/frames_storage/
 main_service/backend/frames_storage/
 
+# Legacy service directory (kept for reference, not tracked)
+# main_service/
+
 # Brain / Gemini internal
 brain/
-brain/3d37e11f-f74f-457f-b43f-66b9511de373/scratch

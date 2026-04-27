@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Asset Data Filter | EIS</title>
+    <title>Asset Data Filter</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -136,18 +136,13 @@
             background-size: 18px;
         }
 
-        .filter-group select:hover {
-            border-color: #4a90e2;
-        }
-
+        .filter-group select:hover { border-color: #4a90e2; }
         .filter-group select:focus {
             border-color: #4a90e2;
             box-shadow: 0 0 0 4px rgba(74, 144, 226, 0.1);
         }
 
-        .span-2 {
-            grid-column: span 2;
-        }
+        .span-2 { grid-column: span 2; }
 
         .filter-footer {
             padding: 2rem 2.5rem;
@@ -172,13 +167,8 @@
             border: none;
         }
 
-        .btn:hover {
-            transform: translateY(-2px);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-        }
+        .btn:hover { transform: translateY(-2px); }
+        .btn:active { transform: translateY(0); }
 
         .btn-apply {
             background: var(--accent-teal);
@@ -203,7 +193,14 @@
             border-color: #ccc;
         }
 
-        /* Responsive Adjustments */
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
         @media (max-width: 900px) {
             .filter-modal { width: 95%; }
             .filter-body { grid-template-columns: 1fr 1fr; }
@@ -220,42 +217,15 @@
                         <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
                     </svg>
                 </div>
-                Asset Data Filter - EIS
+                <span id="header-title-text">Asset Data Filter</span>
             </div>
             <button class="close-btn" onclick="window.close()">✕</button>
         </div>
 
-        <div class="filter-body">
-            <div class="filter-group">
-                <label><span class="emoji">💧</span> Sub Basin</label>
-                <select id="sub-basin">
-                    <option value="">Select Sub Basin</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label><span class="emoji">📍</span> Division</label>
-                <select id="division">
-                    <option value="">Select Division</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label><span class="emoji">📍</span> Sub-Division</label>
-                <select id="sub-division">
-                    <option value="">Select Sub-division</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label><span class="emoji">📦</span> Asset Type</label>
-                <select id="asset-type">
-                    <option value="embankment">Embankment</option>
-                </select>
-            </div>
-            <div class="filter-group span-2">
-                <label><span class="emoji">📝</span> Asset List</label>
-                <select id="asset-list">
-                    <option value="">Select Asset</option>
-                </select>
-            </div>
+        <div class="loading-spinner" id="loading">Loading filter configuration...</div>
+
+        <div class="filter-body" id="filter-body">
+            <!-- Dropdowns are dynamically generated from config -->
         </div>
 
         <div class="filter-footer">
@@ -277,30 +247,136 @@
     </div>
 
     <script type="module">
-        const VISION_PLAYER_URL = "http://localhost:8000/"; 
-        const BASE_API = "http://localhost:49001/lea/wrams";
+        // ─── CONFIG-DRIVEN FILTER ENGINE ───────────────────────────────
+        // This frontend is 100% dynamic. It reads filter_cascade from
+        // the backend /api/config and renders dropdowns accordingly.
+        // Switching SERVICE_PROFILE in .env changes the entire UI.
+        // ───────────────────────────────────────────────────────────────
 
-        const subBasinSelect = document.getElementById('sub-basin');
-        const divisionSelect = document.getElementById('division');
-        const subDivisionSelect = document.getElementById('sub-division');
-        const assetTypeSelect = document.getElementById('asset-type');
-        const assetListSelect = document.getElementById('asset-list');
-        const applyBtn = document.getElementById('apply-filters');
-
-        // Configuration
         const PROXY_API = '/api/java-proxy?path=';
-        const BASE_JAVA_PATH = '/lea/wrams';
-        
+        const LOCAL_QUERY_API = '/api/filters/query/';
 
-        async function fetchAndPopulate(url, selectElement, placeholder, valueKey, textKey, isProxy = true) {
+        let config = {};
+        let filterState = {};   // { filter_id: selected_value }
+        let selectElements = {};
+
+        async function init() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('filter-body').style.display = 'none';
+
             try {
-                // If it's a proxy request, we wrap the path
-                const finalUrl = isProxy ? `${PROXY_API}${encodeURIComponent(url)}` : url;
-                
-                const response = await fetch(finalUrl);
+                const resp = await fetch('/api/config');
+                config = await resp.json();
+            } catch (err) {
+                console.error('Failed to load config:', err);
+                document.getElementById('loading').textContent = 'Error loading configuration.';
+                return;
+            }
+
+            // Set header title from config
+            document.getElementById('header-title-text').textContent =
+                config.header_title || 'Asset Data Filter';
+            document.title = config.header_title || 'Asset Data Filter';
+
+            // Build the filter UI from cascade config
+            buildFilters(config.filter_cascade || []);
+
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('filter-body').style.display = 'grid';
+
+            // Fetch data for the first filter (no dependencies)
+            const firstFilter = (config.filter_cascade || [])[0];
+            if (firstFilter) {
+                await fetchFilterData(firstFilter);
+            }
+        }
+
+        function buildFilters(cascade) {
+            const body = document.getElementById('filter-body');
+            body.innerHTML = '';
+
+            cascade.forEach(filter => {
+                const group = document.createElement('div');
+                group.className = 'filter-group' + (filter.span === 2 ? ' span-2' : '');
+
+                const label = document.createElement('label');
+                label.innerHTML = `<span class="emoji">${filter.emoji || '📋'}</span> ${filter.label}`;
+
+                const select = document.createElement('select');
+                select.id = `filter-${filter.id}`;
+                select.innerHTML = `<option value="">${filter.placeholder || 'Select...'}</option>`;
+
+                // On change: update state, fetch dependents, reset downstream
+                select.addEventListener('change', () => {
+                    filterState[filter.id] = select.value;
+                    onFilterChange(filter);
+                });
+
+                group.appendChild(label);
+                group.appendChild(select);
+                body.appendChild(group);
+
+                selectElements[filter.id] = select;
+            });
+        }
+
+        async function onFilterChange(changedFilter) {
+            const cascade = config.filter_cascade || [];
+            const changedIndex = cascade.findIndex(f => f.id === changedFilter.id);
+
+            // Reset all downstream filters
+            for (let i = changedIndex + 1; i < cascade.length; i++) {
+                const downstream = cascade[i];
+                const sel = selectElements[downstream.id];
+                if (sel) {
+                    sel.innerHTML = `<option value="">${downstream.placeholder || 'Select...'}</option>`;
+                }
+                delete filterState[downstream.id];
+            }
+
+            // Fetch data for filters that directly depend on the changed one
+            for (const filter of cascade) {
+                if (filter.depends_on === changedFilter.id && filterState[changedFilter.id]) {
+                    await fetchFilterData(filter);
+                }
+            }
+        }
+
+        async function fetchFilterData(filter) {
+            const select = selectElements[filter.id];
+            if (!select) return;
+
+            try {
+                let url = '';
+
+                if (filter.source === 'java_proxy') {
+                    // Build the endpoint path, replacing {placeholders} with current state
+                    let path = config.java_api_base_path
+                        ? config.java_api_base_path + filter.endpoint_path
+                        : filter.endpoint_path;
+                    path = interpolatePath(path);
+                    url = `${PROXY_API}${encodeURIComponent(path)}`;
+
+                } else if (filter.source === 'local_query') {
+                    // Call the generic local query endpoint
+                    const queryKey = filter.query_key || filter.id;
+                    let params = new URLSearchParams();
+
+                    // Find what param to send (the value of depends_on)
+                    if (filter.depends_on && filterState[filter.depends_on]) {
+                        // Use the param names from the profile's local_queries config
+                        params.append(filter.depends_on.replace('_', '_') + '_id',
+                            filterState[filter.depends_on]);
+                        // Also try the generic param name
+                        params.append('division_id', filterState[filter.depends_on]);
+                    }
+                    url = `${LOCAL_QUERY_API}${queryKey}?${params.toString()}`;
+                }
+
+                const response = await fetch(url);
                 const data = await response.json();
-                
-                // Handle different JSON formats (Spring Boot often wraps in 'content' or returns an array)
+
+                // Handle different JSON structures
                 let items = [];
                 if (Array.isArray(data)) {
                     items = data;
@@ -310,86 +386,64 @@
                     items = data.content;
                 }
 
-                selectElement.innerHTML = `<option value="">${placeholder}</option>`;
+                select.innerHTML = `<option value="">${filter.placeholder || 'Select...'}</option>`;
                 items.forEach(item => {
                     const option = document.createElement('option');
                     if (item !== null && typeof item === 'object') {
-                        let val = item[valueKey];
+                        let val = item[filter.value_key];
                         if (val === undefined) val = item.id;
                         if (val === undefined) val = item.e_id;
-                        
-                        let txt = item[textKey];
-                        if (txt === undefined) txt = item.jrdcn_NAME;
+
+                        let txt = item[filter.text_key];
+                        if (txt === undefined) txt = item.name;
                         if (txt === undefined) txt = item.assetName;
-                        if (txt === undefined) txt = item.assetTypeName;
-                        
+
                         option.value = val !== undefined ? val : "";
                         option.textContent = txt !== undefined ? txt : "Unknown";
                     } else {
                         option.value = item;
                         option.textContent = item;
                     }
-                    selectElement.appendChild(option);
+                    select.appendChild(option);
                 });
+
             } catch (error) {
-                console.error(`Error fetching data from ${url}:`, error);
-                selectElement.innerHTML = `<option value="">Error loading data</option>`;
+                console.error(`Error fetching data for ${filter.id}:`, error);
+                select.innerHTML = `<option value="">Error loading data</option>`;
             }
         }
 
-        // Initial fetch: Sub Basins
-        fetchAndPopulate(`${BASE_JAVA_PATH}/sub-basin?basinId=1`, subBasinSelect, 'Select Sub Basin', 'shortCode', 'subBasinName');
+        function interpolatePath(path) {
+            // Replace {filter_id} placeholders with current filter state values
+            return path.replace(/\{(\w+)\}/g, (match, key) => {
+                return filterState[key] || '';
+            });
+        }
 
-        subBasinSelect.addEventListener('change', () => {
-            const subBasinCode = subBasinSelect.value;
-            if (!subBasinCode) return;
+        // ─── BUTTONS ──────────────────────────────────────────────────
 
-            // Fetch Divisions
-            fetchAndPopulate(`${BASE_JAVA_PATH}/sub-basin/divisions?shortCode=${subBasinCode}`, divisionSelect, 'Select Division', 'divisionId', 'division');
-            
-            // Reset dependent dropdowns
-            subDivisionSelect.innerHTML = '<option value="">Select Sub-division</option>';
-            assetTypeSelect.innerHTML = '<option value="">Select Asset Type</option>';
-            assetListSelect.innerHTML = '<option value="">Select Asset</option>';
-        });
+        document.getElementById('apply-filters').addEventListener('click', () => {
+            // Find the final filter (the one with is_final=true, or the last one)
+            const cascade = config.filter_cascade || [];
+            const finalFilter = cascade.find(f => f.is_final) || cascade[cascade.length - 1];
 
-        divisionSelect.addEventListener('change', () => {
-            const divisionId = divisionSelect.value;
-            const subBasinId = subBasinSelect.value;
-            if (!divisionId) return;
-
-            // 1. Fetch Sub-divisions from our LOCAL Python API (Port 8001) - NO PROXY NEEDED
-            fetchAndPopulate(`http://localhost:8001/api/filters/sub-divisions?division_id=${divisionId}`, subDivisionSelect, 'Select Sub-division', 'id', 'name', false);
-
-            // 2. Fetch Asset Types from the JAVA API (Port 49001) via PROXY
-            fetchAndPopulate(`${BASE_JAVA_PATH}/assets/distinct-asset-codes?shortCode=${subBasinId}&divisionId=${divisionId}`, assetTypeSelect, 'Select Asset Type', 'assetCode', 'assetTypeName');
-            
-            // Reset asset list
-            assetListSelect.innerHTML = '<option value="">Select Asset</option>';
-        });
-
-        assetTypeSelect.addEventListener('change', () => {
-            const assetCode = assetTypeSelect.value;
-            const subBasinId = subBasinSelect.value;
-            const divisionId = divisionSelect.value;
-            if (!assetCode) return;
-
-            // Fetch Assets via PROXY
-            fetchAndPopulate(`${BASE_JAVA_PATH}/assets?shortCode=${subBasinId}&divisionId=${divisionId}&assetCode=${assetCode}`, assetListSelect, 'Select Asset', 'e_id', 'assetName');
-        });
-
-        applyBtn.addEventListener('click', () => {
-            const e_id = assetListSelect.value;
-            if (e_id) {
-                window.location.href = `${VISION_PLAYER_URL}?e_id=${e_id}`;
-            } else {
-                alert('Please select an asset from the list');
+            if (finalFilter) {
+                const selectedValue = filterState[finalFilter.id];
+                if (selectedValue) {
+                    const idField = config.id_field || 'e_id';
+                    window.location.href = `${config.vision_player_url}?${idField}=${selectedValue}`;
+                } else {
+                    alert(`Please select a value from "${finalFilter.label}"`);
+                }
             }
         });
 
         document.getElementById('clear-all').addEventListener('click', () => {
-            location.reload(); // Simplest way to reset everything
+            location.reload();
         });
+
+        // ─── INIT ────────────────────────────────────────────────────
+        init();
     </script>
 </body>
 </html>
