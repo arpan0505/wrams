@@ -3,6 +3,7 @@ import { getConfig } from './config.js';
 
 let sessionFrames = [];
 let isDirty = false;
+let totalUploaded = 0;
 
 export function addFrameToSession(frame) {
     sessionFrames.push(frame);
@@ -15,6 +16,7 @@ export function getSessionFrames() {
 }
 
 export function clearSession() {
+    totalUploaded += sessionFrames.length;
     sessionFrames = [];
     isDirty = false;
     updateStatusDisplay();
@@ -27,7 +29,7 @@ export function hasUnsavedFrames() {
 function updateStatusDisplay() {
     const countBadge = document.getElementById('frame-count');
     if (countBadge) {
-        countBadge.textContent = `${sessionFrames.length} captured`;
+        countBadge.textContent = `${totalUploaded + sessionFrames.length} captured`;
     }
 }
 

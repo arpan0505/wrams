@@ -90,6 +90,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  const newVideoBtn = document.getElementById('new-video-btn');
+  if (newVideoBtn) {
+    newVideoBtn.addEventListener('click', () => {
+      if (hasUnsavedFrames()) {
+        if (!confirm("You have unsaved frames that haven't auto-saved yet! Are you sure you want to leave?")) {
+          return;
+        }
+      }
+      window.location.href = config.filter_service_url;
+    });
+  }
+
   // 4. Session Saving Workflow
   saveSessionBtn.addEventListener('click', () => {
     const frames = getSessionFrames();
@@ -132,6 +144,52 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // 5. Auto Save Feature
+  const autoSaveToggle = document.getElementById('autosave-toggle');
+  let autoSaveInterval = null;
+
+  async function performAutoSave() {
+    if (hasUnsavedFrames()) {
+      console.log("Auto-saving frames in background...");
+      saveSessionBtn.textContent = "💾 Saving...";
+      try {
+        await uploadSession();
+        clearSession();
+        console.log("Auto-save successful.");
+      } catch (err) {
+        console.error("Auto-save failed", err);
+      } finally {
+        saveSessionBtn.textContent = "💾 Save Session";
+      }
+    }
+  }
+
+  function startAutoSave() {
+    if (!autoSaveInterval) {
+      autoSaveInterval = setInterval(performAutoSave, 30000); // 30 seconds
+    }
+  }
+
+  function stopAutoSave() {
+    if (autoSaveInterval) {
+      clearInterval(autoSaveInterval);
+      autoSaveInterval = null;
+    }
+  }
+
+  // Initialize auto-save based on default state
+  if (autoSaveToggle) {
+    if (autoSaveToggle.checked) startAutoSave();
+
+    autoSaveToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        startAutoSave();
+      } else {
+        stopAutoSave();
+      }
+    });
+  }
+
   // Browser Exit Warning
   window.addEventListener('beforeunload', (e) => {
     if (hasUnsavedFrames()) {
@@ -140,6 +198,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // 3. Initialize Frame Snatcher System
+  // 6. Initialize Frame Snatcher System
   setupFrameSnatcher(videoPlayer);
 });

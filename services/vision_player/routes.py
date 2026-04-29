@@ -41,7 +41,7 @@ def get_frontend_config():
 
 
 @router.post("/frames/batch")
-async def receive_frames_batch(
+def receive_frames_batch(
     batch: schemas.FrameBatch, 
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
